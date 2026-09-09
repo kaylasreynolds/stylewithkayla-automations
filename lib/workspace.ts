@@ -13,21 +13,40 @@ export const getWorkspace = cache(async () => {
   const supabase = await createClient();
   const {
     data: { user },
+    error: userError,
   } = await supabase.auth.getUser();
+
+  console.log("[workspace-debug] auth", {
+    hasUser: Boolean(user),
+    userIdPrefix: user?.id.slice(0, 8) ?? null,
+    error: userError?.message ?? null,
+  });
 
   if (!user) redirect("/login");
 
   const cookieStore = await cookies();
   const selectedId = cookieStore.get(WORKSPACE_COOKIE)?.value;
 
+  console.log("[workspace-debug] selected workspace", {
+    selectedId: selectedId ?? null,
+  });
+
   // Try cookie workspace first
   if (selectedId) {
-    const { data: membership } = await supabase
+    const { data: membership, error: selectedMembershipError } = await supabase
       .from("workspace_members")
       .select("workspace_id, role, workspaces(*)")
       .eq("user_id", user.id)
       .eq("workspace_id", selectedId)
       .single();
+
+    console.log("[workspace-debug] selected membership", {
+      found: Boolean(membership),
+      workspaceId: membership?.workspace_id ?? null,
+      role: membership?.role ?? null,
+      hasWorkspace: Boolean(membership?.workspaces),
+      error: selectedMembershipError?.message ?? null,
+    });
 
     if (membership?.workspaces) {
       return {
@@ -40,12 +59,20 @@ export const getWorkspace = cache(async () => {
   }
 
   // Fallback to first workspace
-  const { data: membership } = await supabase
+  const { data: membership, error: fallbackMembershipError } = await supabase
     .from("workspace_members")
     .select("workspace_id, role, workspaces(*)")
     .eq("user_id", user.id)
     .limit(1)
     .single();
+
+  console.log("[workspace-debug] fallback membership", {
+    found: Boolean(membership),
+    workspaceId: membership?.workspace_id ?? null,
+    role: membership?.role ?? null,
+    hasWorkspace: Boolean(membership?.workspaces),
+    error: fallbackMembershipError?.message ?? null,
+  });
 
   if (!membership?.workspaces) redirect("/login");
 

@@ -1,4 +1,4 @@
-]633;E;{ cat 00000_uuid_compat.sql\x3b echo\x3b cat ALL_MIGRATIONS.sql\x3b } > ALL_MIGRATIONS.tmp;52b3ac51-c3c6-45ae-9f06-c7124ced037a]633;C-- Supabase installs uuid-ossp in the extensions schema on hosted projects.
+-- Supabase installs uuid-ossp in the extensions schema on hosted projects.
 -- ZernFlow's initial schema calls uuid_generate_v4() unqualified, so expose
 -- a public compatibility wrapper before the upstream migrations run.
 create extension if not exists "uuid-ossp" with schema extensions;
@@ -11,16 +11,6 @@ as $$
   select extensions.uuid_generate_v4();
 $$;
 
--- =============================================
--- ZERNFLOW - COMBINED MIGRATIONS
--- Generated from supabase/migrations/*.sql, in order.
--- Paste this entire file into Supabase SQL Editor
--- https://supabase.com/dashboard/project/_/sql/new
--- =============================================
-
--- ============================================================
--- MIGRATION 1: INITIAL SCHEMA
--- ============================================================
 -- Enable UUID extension
 create extension if not exists "uuid-ossp";
 
@@ -351,9 +341,6 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function handle_new_user();
 
--- ============================================================
--- MIGRATION 2: RLS POLICIES
--- ============================================================
 -- ============================================================
 -- ROW LEVEL SECURITY POLICIES
 -- ============================================================
@@ -694,9 +681,6 @@ create policy "Users can insert analytics in their workspaces"
   with check (is_workspace_member(workspace_id));
 
 -- ============================================================
--- MIGRATION 3: RPC FUNCTIONS
--- ============================================================
--- ============================================================
 -- RPC FUNCTIONS
 -- ============================================================
 
@@ -734,9 +718,6 @@ begin
 end;
 $$ language plpgsql security definer;
 
--- ============================================================
--- MIGRATION 4: COMMENT AUTOMATION
--- ============================================================
 -- ============================================================
 -- COMMENT AUTOMATION
 -- ============================================================
@@ -785,9 +766,6 @@ create policy "Users can view comment logs in their workspace"
     )
   );
 
--- ============================================================
--- MIGRATION 5: SEQUENCES
--- ============================================================
 -- Sequences: drip campaigns
 CREATE TABLE IF NOT EXISTS sequences (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -831,9 +809,6 @@ CREATE POLICY "enrollments_via_sequence" ON sequence_enrollments
     )
   );
 
--- ============================================================
--- MIGRATION 6: WORKSPACE INVITES
--- ============================================================
 -- ============================================================
 -- WORKSPACE INVITES
 -- ============================================================
@@ -889,22 +864,13 @@ CREATE POLICY "workspace_invites_update" ON workspace_invites
     email = (SELECT email FROM auth.users WHERE id = auth.uid())
   );
 
--- ============================================================
--- MIGRATION 7: OPENAI API KEY
--- ============================================================
 -- Add OpenAI API key column to workspaces
 ALTER TABLE workspaces ADD COLUMN IF NOT EXISTS openai_api_key TEXT;
 
--- ============================================================
--- MIGRATION 8: AI PROVIDER
--- ============================================================
 -- Rename openai_api_key to ai_api_key and add ai_provider column
 ALTER TABLE workspaces RENAME COLUMN openai_api_key TO ai_api_key;
 ALTER TABLE workspaces ADD COLUMN IF NOT EXISTS ai_provider TEXT NOT NULL DEFAULT 'openai';
 
--- ============================================================
--- MIGRATION 9: FIX BROADCAST RLS
--- ============================================================
 -- Fix broadcast_recipients: add INSERT/UPDATE/DELETE policies
 CREATE POLICY "Users can insert broadcast recipients" ON broadcast_recipients
   FOR INSERT WITH CHECK (
@@ -935,9 +901,6 @@ CREATE POLICY "Authenticated users can read jobs" ON scheduled_jobs
 CREATE POLICY "Authenticated users can update jobs" ON scheduled_jobs
   FOR UPDATE USING (auth.uid() IS NOT NULL);
 
--- ============================================================
--- MIGRATION 10: FLOW VERSIONS
--- ============================================================
 -- Flow version history: stores a snapshot of nodes/edges on each publish
 create table flow_versions (
   id uuid primary key default uuid_generate_v4(),
@@ -973,17 +936,11 @@ create policy "flow_versions_insert" on flow_versions for insert
       and wm.user_id = auth.uid()
   ));
 
--- ============================================================
--- MIGRATION 11: WORKSPACE WEBHOOK SECRET
--- ============================================================
 -- Add workspace-level webhook secret for Zernio HMAC signature verification.
 -- Zernio exposes a single webhook per profile/API key, so the secret lives at the
 -- workspace level (not per-channel). Used by /api/webhooks/late to verify signatures.
 ALTER TABLE workspaces ADD COLUMN IF NOT EXISTS webhook_secret TEXT;
 
--- ============================================================
--- MIGRATION 12: WEBHOOK EVENTS
--- ============================================================
 -- Idempotency ledger for inbound Zernio webhook deliveries. Zernio retries a
 -- delivery with the same event id whenever our 200 doesn't arrive within its 5s
 -- timeout; /api/webhooks/late claims the id here before processing so retries
@@ -998,9 +955,6 @@ CREATE INDEX IF NOT EXISTS webhook_events_received_at_idx ON webhook_events (rec
 
 ALTER TABLE webhook_events ENABLE ROW LEVEL SECURITY;
 
--- ============================================================
--- MIGRATION 13: SEQUENCE ENROLLMENTS CHANNEL CASCADE
--- ============================================================
 -- sequence_enrollments.channel_id was declared without an ON DELETE action
 -- (00005_sequences.sql), so deleting a channel with enrollments failed with a
 -- 23503 FK violation. Every other channel FK cascades (or sets null); align
@@ -1010,9 +964,6 @@ ALTER TABLE sequence_enrollments
   ADD CONSTRAINT sequence_enrollments_channel_id_fkey
     FOREIGN KEY (channel_id) REFERENCES channels(id) ON DELETE CASCADE;
 
--- ============================================================
--- MIGRATION 14: SCHEDULED JOBS CLAIMED AT
--- ============================================================
 -- The cron claims a job by flipping status to 'processing'. If that UPDATE
 -- commits but the response is lost, the job is stranded: the fetch only read
 -- 'pending' rows. claimed_at lets the cron reclaim 'processing' jobs whose
@@ -1022,9 +973,6 @@ ALTER TABLE scheduled_jobs ADD COLUMN claimed_at timestamptz;
 CREATE INDEX idx_scheduled_jobs_processing ON scheduled_jobs(claimed_at)
   WHERE status = 'processing';
 
--- ============================================================
--- MIGRATION 15: BACKFILL CLAIMED AT
--- ============================================================
 -- 00014 added claimed_at but did not backfill rows already stuck in
 -- 'processing', and old-code invocations claim without stamping it. Stamp
 -- existing NULL claims so the cron's staleness clock (claimed_at older than
@@ -1035,9 +983,6 @@ UPDATE scheduled_jobs
 SET claimed_at = now()
 WHERE status = 'processing' AND claimed_at IS NULL;
 
--- ============================================================
--- MIGRATION 16: WHATSAPP CHANNEL PLATFORM
--- ============================================================
 -- WhatsApp was advertised on the site, offered in the channel picker and
 -- already handled by the flow engine, but 00001's platform check constraint
 -- never listed it, so the channel row could not be stored (issue #16).
@@ -1045,4 +990,33 @@ ALTER TABLE channels DROP CONSTRAINT IF EXISTS channels_platform_check;
 
 ALTER TABLE channels ADD CONSTRAINT channels_platform_check
   CHECK (platform IN ('facebook', 'instagram', 'twitter', 'telegram', 'bluesky', 'reddit', 'whatsapp'));
+
+-- ============================================================
+-- AUTHENTICATED ROLE GRANTS
+-- ============================================================
+-- RLS policies decide which rows authenticated users may access,
+-- but PostgreSQL object privileges must also allow the operation.
+-- Without these grants, Supabase returns "permission denied" before
+-- the RLS policies can be evaluated.
+
+-- Allow authenticated users to resolve objects in the public schema.
+grant usage on schema public to authenticated;
+
+-- Allow normal application CRUD. Existing RLS policies continue to
+-- restrict every operation to rows the signed-in user is allowed to use.
+grant select, insert, update, delete
+on all tables in schema public
+to authenticated;
+
+-- Support current/future sequence-backed columns.
+grant usage, select
+on all sequences in schema public
+to authenticated;
+
+-- Keep future tables/sequences created by migrations usable by the app.
+alter default privileges in schema public
+grant select, insert, update, delete on tables to authenticated;
+
+alter default privileges in schema public
+grant usage, select on sequences to authenticated;
 

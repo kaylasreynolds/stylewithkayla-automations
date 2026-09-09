@@ -41,28 +41,30 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse;
   }
 
+  function redirectWithSession(pathname: string) {
+    const url = request.nextUrl.clone();
+    url.pathname = pathname;
+
+    const redirectResponse = NextResponse.redirect(url);
+
+    // Preserve the complete refreshed Supabase cookie attributes on redirects.
+    // Dropping options such as path, SameSite, expiry, or secure can cause the
+    // browser and middleware to disagree about the active session and loop.
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+      redirectResponse.cookies.set(cookie);
+    });
+
+    return redirectResponse;
+  }
+
   // Redirect logged-in users away from auth pages to dashboard
   if (user && isAuthPage) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
-    const redirectResponse = NextResponse.redirect(url);
-    // Forward any refreshed session cookies
-    supabaseResponse.cookies.getAll().forEach((cookie) => {
-      redirectResponse.cookies.set(cookie.name, cookie.value);
-    });
-    return redirectResponse;
+    return redirectWithSession("/dashboard");
   }
 
   // Redirect unauthenticated users trying to access dashboard to login
   if (!user && isDashboard) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    const redirectResponse = NextResponse.redirect(url);
-    // Forward any refreshed session cookies
-    supabaseResponse.cookies.getAll().forEach((cookie) => {
-      redirectResponse.cookies.set(cookie.name, cookie.value);
-    });
-    return redirectResponse;
+    return redirectWithSession("/login");
   }
 
   return supabaseResponse;

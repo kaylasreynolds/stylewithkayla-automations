@@ -1,3 +1,16 @@
+]633;E;{ cat 00000_uuid_compat.sql\x3b echo\x3b cat ALL_MIGRATIONS.sql\x3b } > ALL_MIGRATIONS.tmp;52b3ac51-c3c6-45ae-9f06-c7124ced037a]633;C-- Supabase installs uuid-ossp in the extensions schema on hosted projects.
+-- ZernFlow's initial schema calls uuid_generate_v4() unqualified, so expose
+-- a public compatibility wrapper before the upstream migrations run.
+create extension if not exists "uuid-ossp" with schema extensions;
+
+create or replace function public.uuid_generate_v4()
+returns uuid
+language sql
+volatile
+as $$
+  select extensions.uuid_generate_v4();
+$$;
+
 -- =============================================
 -- ZERNFLOW - COMBINED MIGRATIONS
 -- Generated from supabase/migrations/*.sql, in order.

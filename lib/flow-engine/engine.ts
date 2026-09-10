@@ -338,7 +338,7 @@ async function traverseNodes(
   }
 
   // Continue to next node
-  await traverseNodes(supabase, session.id, nextNode, nodes, edges, context, depth + 1);
+  await traverseNodes(supabase, sessionId, nextNode, nodes, edges, context, depth + 1);
 }
 
 async function executeNode(

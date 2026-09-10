@@ -20,10 +20,12 @@ import { randomUUID } from "crypto";
 import { readFileSync } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
+import { fileURLToPath } from "node:url";
+import { dirname } from "node:path";
 
 // Load .env manually (no dotenv dependency)
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const envPath = resolve(__dirname, "../.env");
+const scriptDir = dirname(fileURLToPath(import.meta.url));
+const envPath = resolve(scriptDir, "../.env");
 for (const line of readFileSync(envPath, "utf8").split("\n")) {
   const trimmed = line.trim();
   if (!trimmed || trimmed.startsWith("#")) continue;

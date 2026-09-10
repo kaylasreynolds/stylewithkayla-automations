@@ -113,8 +113,24 @@ export async function executeFlow(
     metadata: { triggerId: context.triggerId },
   });
 
-  // Find the trigger node (entry point)
-  const triggerNode = nodes.find((n) => n.type === "trigger");
+  // Start at the exact builder trigger that produced the matched trigger row.
+  // Older published rows may not have nodeId yet, so fall back to the legacy
+  // first-trigger behavior until the flow is republished.
+  const { data: matchedTrigger } = await supabase
+    .from("triggers")
+    .select("config")
+    .eq("id", context.triggerId)
+    .eq("flow_id", context.flowId)
+    .maybeSingle();
+
+  const triggerConfig = matchedTrigger?.config as { nodeId?: string } | null;
+  const triggerNode =
+    (triggerConfig?.nodeId
+      ? nodes.find(
+          (n) => n.type === "trigger" && n.id === triggerConfig.nodeId
+        )
+      : undefined) ?? nodes.find((n) => n.type === "trigger");
+
   if (!triggerNode) return;
 
   // Get the first connected node

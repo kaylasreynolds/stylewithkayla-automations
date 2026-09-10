@@ -45,10 +45,15 @@ export function buildDesiredTriggers(
       const type = (data.triggerType ?? "keyword") as string;
       if (!isBuilderTriggerType(type)) return [];
 
+      // Persist the originating builder node id so the runtime can enter a
+      // multi-trigger flow from the exact trigger that matched.
+      const config: Record<string, any> = {
+        nodeId: typeof n.id === "string" ? n.id : undefined,
+      };
+
       // The trigger panel stores keywords as data.keywords ([{ value, matchType }]);
       // template-seeded nodes store data.config.keywords ([string]). The matcher
       // accepts both shapes, so pass through whichever the node carries.
-      const config: Record<string, any> = {};
       if (type === "keyword" || type === "comment_keyword") {
         config.keywords = data.keywords ?? nodeConfig.keywords ?? [];
         if (nodeConfig.matchType) config.matchType = nodeConfig.matchType;

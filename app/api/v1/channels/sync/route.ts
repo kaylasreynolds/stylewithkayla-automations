@@ -166,15 +166,24 @@ export async function POST() {
       console.error("[channels/sync] inbox backfill failed:", err);
     }
 
-    // Return updated channel list
-    const { data: channels } = await supabase
+    // Return updated channel list. If the post-sync read unexpectedly comes
+    // back empty, preserve the channels we already loaded at the start of the
+    // request instead of making the client falsely show "No channels yet".
+    const { data: channels, error: channelReadError } = await supabase
       .from("channels")
       .select("*")
       .eq("workspace_id", workspace.id)
       .order("created_at", { ascending: false });
 
+    if (channelReadError) {
+      console.error("[channels/sync] final channel read failed:", channelReadError);
+    }
+
+    const responseChannels =
+      channels && channels.length > 0 ? channels : existingChannels ?? [];
+
     return NextResponse.json({
-      channels: channels ?? [],
+      channels: responseChannels,
       synced: {
         created,
         updated,

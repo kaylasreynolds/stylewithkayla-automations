@@ -14,6 +14,8 @@ import { messagePreview } from "@/lib/message-preview";
 /** Cap per channel: 4 pages x 50 conversations. */
 const MAX_PAGES_PER_CHANNEL = 4;
 const PAGE_SIZE = 50;
+/** Keep each Cloudflare invocation comfortably below the subrequest limit. */
+const MAX_IMPORTS_PER_CHANNEL = 5;
 
 export interface BackfillChannel {
   id: string;
@@ -193,6 +195,9 @@ async function backfillChannel({
       if (await importConversation({ supabase, workspaceId, channel, conv })) {
         imported++;
       }
+      if (imported >= MAX_IMPORTS_PER_CHANNEL) {
+  return imported;
+}
     }
 
     const pagination = res.data?.pagination;

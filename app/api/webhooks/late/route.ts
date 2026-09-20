@@ -145,16 +145,25 @@ async function handleWebhook(request: NextRequest) {
   const supabase = await createServiceClient();
 
   // Look up channel by late_account_id
-  const { data: channel } = await supabase
-    .from("channels")
-    .select("*")
-    .eq("late_account_id", account.id)
-    .eq("is_active", true)
-    .single();
+  const { data: channel, error: channelError } = await supabase
+  .from("channels")
+  .select("*")
+  .eq("late_account_id", account.id)
+  .eq("is_active", true)
+  .single();
 
-  if (!channel) {
-    return NextResponse.json({ error: "Channel not found" }, { status: 404 });
-  }
+if (channelError) {
+  console.error("[webhook] channel lookup failed:", {
+    accountId: account.id,
+    code: channelError.code,
+    message: channelError.message,
+    details: channelError.details,
+  });
+}
+
+if (!channel) {
+  return NextResponse.json({ error: "Channel not found" }, { status: 404 });
+}
 
   // Prevent loops: if the sender is another connected account in this
   // workspace, skip. This happens when both sides of a DM conversation

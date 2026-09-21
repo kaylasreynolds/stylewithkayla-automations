@@ -20,6 +20,7 @@ interface ActionPanelData {
   flowId?: string;
   returnAfter?: boolean;
   message?: string;
+  imageUrl?: string;
   paths?: Array<{ name: string; weight: number }>;
   timeout?: number;
   timeoutUnit?: string;
@@ -57,7 +58,14 @@ export function ActionPanel({ data: rawData, onChange }: ActionPanelProps) {
       return <SubscribeConfig data={data} onChange={onChange} />;
     case "humanTakeover":
       return <HumanTakeoverConfig data={data} onChange={onChange} />;
-    case "abSplit":
+    case "humanTakeover":
+  return <HumanTakeoverConfig data={data} onChange={onChange} />;
+case "commentReply":
+  return <CommentReplyConfig data={data} onChange={onChange} />;
+case "privateReply":
+  return <PrivateReplyConfig data={data} onChange={onChange} />;
+case "abSplit":
+      case "abSplit":
       return <ABSplitConfig data={data} onChange={onChange} />;
     case "smartDelay":
       return <SmartDelayConfig data={data} onChange={onChange} />;
@@ -382,7 +390,61 @@ function HumanTakeoverConfig({ data, onChange }: ActionSubPanelProps) {
     </div>
   );
 }
+function CommentReplyConfig({ data, onChange }: ActionSubPanelProps) {
+  return (
+    <div className="space-y-4">
+      <div>
+        <label className="mb-2 block text-xs font-semibold text-foreground">
+          Comment Reply
+        </label>
+        <textarea
+          value={data.message || ""}
+          onChange={(e) =>
+            onChange({
+              ...data,
+              text: e.target.value,
+              message: e.target.value,
+            })
+          }
+          placeholder="Sent you the details 💕"
+          rows={4}
+          className="w-full resize-none rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
+        />
+        <p className="mt-1.5 text-xs text-muted-foreground">
+          This will post a public reply to the Instagram comment.
+        </p>
+      </div>
+    </div>
+  );
+}
 
+function PrivateReplyConfig({ data, onChange }: ActionSubPanelProps) {
+  return (
+    <div className="space-y-4">
+      <div>
+        <label className="mb-2 block text-xs font-semibold text-foreground">
+          Private Reply
+        </label>
+        <textarea
+          value={data.message || ""}
+          onChange={(e) =>
+            onChange({
+              ...data,
+              text: e.target.value,
+              message: e.target.value,
+            })
+          }
+          placeholder="Hi! Here’s the link I mentioned..."
+          rows={4}
+          className="w-full resize-none rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
+        />
+        <p className="mt-1.5 text-xs text-muted-foreground">
+          This will send a private message to the Instagram commenter.
+        </p>
+      </div>
+    </div>
+  );
+}
 /* ───────── A/B Split Config ───────── */
 function ABSplitConfig({ data, onChange }: ActionSubPanelProps) {
   const paths = data.paths || [

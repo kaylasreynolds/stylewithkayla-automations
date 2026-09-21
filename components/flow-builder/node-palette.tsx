@@ -142,6 +142,20 @@ const categories: PaletteCategory[] = [
         icon: ListOrdered,
         actionType: "enrollSequence",
       },
+      {
+  type: "action",
+  nodeType: "commentReply",
+  label: "Reply to Comment",
+  icon: MessageSquare,
+  actionType: "commentReply",
+},
+{
+  type: "action",
+  nodeType: "privateReply",
+  label: "Private Reply",
+  icon: MessageSquare,
+  actionType: "privateReply",
+},
     ],
   },
 ];

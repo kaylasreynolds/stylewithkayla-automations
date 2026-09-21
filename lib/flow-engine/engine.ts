@@ -347,7 +347,12 @@ async function executeNode(
   context: FlowExecutionContext,
   sessionId: string
 ): Promise<string | void> {
-  switch (node.type) {
+  const rawNodeType = node.type as string;
+  const nodeType =
+    rawNodeType === "action"
+      ? ((node.data as { actionType?: string }).actionType ?? rawNodeType)
+      : rawNodeType;
+  switch (nodeType) {
     case "sendMessage":
       return executeSendMessage(supabase, node.data as SendMessageNodeData, context);
     case "condition":
@@ -939,8 +944,10 @@ async function executeCommentReply(
     return;
   }
 
-  const text = interpolateVariables(data.text, context.variables || {});
-
+const text = interpolateVariables(
+  data.text || (data as { message?: string }).message || "",
+  context.variables || {}
+);
   try {
     await zernio.comments.replyToInboxPost({
       path: { postId },
@@ -992,8 +999,10 @@ async function executePrivateReply(
     return;
   }
 
-  const text = interpolateVariables(data.text, context.variables || {});
-
+const text = interpolateVariables(
+  data.text || (data as { message?: string }).message || "",
+  context.variables || {}
+);
   try {
     await zernio.comments.sendPrivateReplyToComment({
       path: { postId, commentId },

@@ -122,6 +122,11 @@ function getSummary(nodeData: ActionNodeProps): string | null {
       return "Subscribe contact";
     case "unsubscribe":
       return "Unsubscribe contact";
+      case "commentReply":
+  return nodeData.message || "Reply to comment";
+
+case "privateReply":
+  return nodeData.message || "Send private reply";
     case "abSplit":
       if (nodeData.paths && nodeData.paths.length > 0) {
         return nodeData.paths.map((p) => `${p.name}: ${p.weight}%`).join(", ");

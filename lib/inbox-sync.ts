@@ -168,6 +168,7 @@ async function backfillChannel({
   );
 
   let imported = 0;
+  let attempted = 0;
   let cursor: string | undefined;
   const seenParticipants = new Set<string>();
 
@@ -192,10 +193,14 @@ async function backfillChannel({
       if (seenParticipants.has(conv.participantId)) continue;
       seenParticipants.add(conv.participantId);
       if (known.has(conv.id)) continue;
-      if (await importConversation({ supabase, workspaceId, channel, conv })) {
-        imported++;
-      }
-      if (imported >= MAX_IMPORTS_PER_CHANNEL) {
+      
+      attempted++;
+
+if (await importConversation({ supabase, workspaceId, channel, conv })) {
+  imported++;
+}
+
+if (attempted >= MAX_IMPORTS_PER_CHANNEL) {
   return imported;
 }
     }

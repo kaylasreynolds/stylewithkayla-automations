@@ -527,9 +527,35 @@ async function executeSendMessage(
       // stored locally and never included in the send body, so flow media never
       // reached the contact.
       if (mediaUrl) {
-        body.attachmentUrl = mediaUrl;
-        body.attachmentType = mediaType || "image";
-      }
+  const mediaResponse = await fetch(mediaUrl);
+
+  if (!mediaResponse.ok) {
+    throw new Error(
+      `Failed to fetch media: ${mediaResponse.status} ${mediaResponse.statusText}`
+    );
+  }
+
+  const contentType =
+    mediaResponse.headers.get("content-type") || "application/octet-stream";
+
+  const mediaBlob = await mediaResponse.blob();
+
+  const uploadResponse = await zernio.messages.uploadMediaDirect({
+    body: {
+      file: mediaBlob,
+      contentType,
+    },
+  });
+
+  const uploadedUrl = uploadResponse.data?.url;
+
+  if (!uploadedUrl) {
+    throw new Error("Zernio media upload did not return a URL");
+  }
+
+  body.attachmentUrl = uploadedUrl;
+  body.attachmentType = mediaType || "image";
+}
 
       if (adapted.buttons?.length) {
         body.buttons = adapted.buttons;

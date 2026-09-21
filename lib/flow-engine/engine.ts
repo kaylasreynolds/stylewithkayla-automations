@@ -543,7 +543,7 @@ async function executeSendMessage(
       if (adapted.replyMarkup) {
         body.replyMarkup = adapted.replyMarkup;
       }
-
+console.log("[send-message] outbound body:", body);
       const response = await zernio.messages.sendInboxMessage({
         path: { conversationId: lateConversationId },
         body: body as Parameters<typeof zernio.messages.sendInboxMessage>[0]["body"],
